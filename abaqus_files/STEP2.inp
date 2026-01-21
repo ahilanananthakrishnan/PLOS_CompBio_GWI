@@ -1,0 +1,68 @@
+*INCLUDE, INPUT=PARAMETERS.inp
+*********************************************************************
+** Import hypertrophied configuration from Step 1
+*********************************************************************
+*IMPORT, STEP=1, STATE=NO, UPDATE=YES
+ALL
+*IMPORT ELSET
+ALL
+*IMPORT NSET
+ALL
+FACE1
+FACE2
+FACE3
+FACE4
+FACE5
+FACE6
+*********************************************************************
+** Material and section
+*********************************************************************
+*Material, name=COLON
+*Depvar
+3,
+*User Material, constants=35, unsymm
+<day>, <t_pb>, <tc>, <a_cyto>, <d1_cyto>, <d2_cyto>, <theta_max_0>, <b_hyper>,
+<c_hyper>, <K_hyper>, <n_hyper>, <m_macro>, <y1_macro>, <y2_macro>, <gamma_ch>, <gamma_nos>,
+<r_ch>, <k_ch>, <ch_ss>, <r_nos>, <k_nos>, <nos_ss>, <k_ex>, <k_in>,
+<mu>, <kappa_bulk>, <kappa_fiber>, <alpha_act_ex>, <beta_act_in>, <Rdir1>, <Rdir2>, <Rdir3>,
+<Tdir1>, <Tdir2>, <Tdir3>
+*Solid Section, elset=ALL, material=COLON, ORIENTATION=CSYS
+*Initial Conditions, Type=Solution, User
+*********************************************************************
+** Preload amplitude (stretch)
+*********************************************************************
+*Amplitude, name=PreloadStretch
+0.0, 0.0,
+1.0, 0.2
+*********************************************************************
+** Step 2: Elastic preload (organ-bath baseline)
+*********************************************************************
+*Step, name=Step-2, nlgeom=YES, inc=1000000
+*Static
+0.01, 1.0, 1E-6, 1.
+*********************************************************************
+** Boundary conditions
+*********************************************************************
+*Boundary
+FACE1, 3
+FACE3, 2
+FACE6, 1
+*Boundary, amplitude=PreloadStretch
+FACE2, 3, 3, 1.0
+*********************************************************************
+** Output
+*********************************************************************
+*Restart, write, frequency=1
+*Output, field, TIME INTERVAL=0.1
+*Node Output
+COORD
+*Element Output, directions=YES
+EVOL, SDV
+*Output, field, variable=PRESELECT, TIME INTERVAL=0.1
+*Output, history, variable=PRESELECT, TIME INTERVAL=0.1
+*NODE OUTPUT,NSET=ALL
+U,RF
+*Element Output, elset=ALL
+SDV, MISES
+*End Step
+*********************************************************************

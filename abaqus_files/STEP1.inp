@@ -1,0 +1,84 @@
+*INCLUDE, INPUT=PARAMETERS.inp
+*Preprint, echo=NO, model=NO, history=NO, contact=NO
+*********************************************************************
+** Node definitions
+*********************************************************************
+*Node, nset=ALL
+1, 0.0, 0.0, 0.0
+2, 1.0, 0.0, 0.0
+3, 1.0, 1.0, 0.0
+4, 0.0, 1.0, 0.0
+5, 0.0, 0.0, 1.0
+6, 1.0, 0.0, 1.0
+7, 1.0, 1.0, 1.0
+8, 0.0, 1.0, 1.0
+*NSET, NSET=FACE1
+1,2,3,4
+*NSET, NSET=FACE2
+5,6,7,8
+*NSET, NSET=FACE3
+1,2,5,6
+*NSET, NSET=FACE4
+2,3,6,7
+*NSET, NSET=FACE5
+3,4,7,8
+*NSET, NSET=FACE6
+4,1,8,5
+*********************************************************************
+** Element definitions
+*********************************************************************
+*Element, type=C3D8
+1, 1,2,3,4,5,6,7,8
+*Elset, elset=ALL
+1
+*********************************************************************
+** Orientation, Material, Section
+*********************************************************************
+*ORIENTATION, NAME=CSYS, SYSTEM=RECTANGULAR
+1.,0.,0., 0.,1.,0., 0.,0.,0.
+1,0.
+*Material, name=COLON
+*Depvar
+3,
+*User Material, constants=35, unsymm
+<day>, <t_pb>, <tc>, <a_cyto>, <d1_cyto>, <d2_cyto>, <theta_max_0>, <b_hyper>,
+<c_hyper>, <K_hyper>, <n_hyper>, <m_macro>, <y1_macro>, <y2_macro>, <gamma_ch>, <gamma_nos>,
+<r_ch>, <k_ch>, <ch_ss>, <r_nos>, <k_nos>, <nos_ss>, <k_ex>, <k_in>,
+<mu>, <kappa_bulk>, <kappa_fiber>, <alpha_act_ex>, <beta_act_in>, <Rdir1>, <Rdir2>, <Rdir3>,
+<Tdir1>, <Tdir2>, <Tdir3>
+*Solid Section, elset=ALL, material=COLON, ORIENTATION=CSYS
+*Initial Conditions, Type=Solution, User
+*********************************************************************
+** Boundary Conditions
+*********************************************************************
+*Boundary
+1, PINNED
+2, 2, 2
+2, 3, 3
+4, 1, 1
+4, 3, 3
+5, 1, 1
+5, 2, 2
+3, 3, 3
+6, 2, 2
+8, 1, 1
+*********************************************************************
+** Step-1: Hypertrophy
+*********************************************************************
+*Step, name=Step-1, nlgeom=YES, inc=1000000
+*Static, STABILIZE
+1E-1, <day>, 1E-8, 1E-1
+*Restart, write, frequency=1
+*Output, field, TIME INTERVAL=0.1
+*Node Output
+COORD
+*Element Output, directions=YES
+EVOL, SDV
+*Output, field, variable=PRESELECT, TIME INTERVAL=0.1
+*Output, history, variable=PRESELECT, TIME INTERVAL=0.1
+*NODE OUTPUT,NSET=ALL
+U,RF
+*Element Output, elset=ALL
+SDV, MISES
+*End Step
+*********************************************************************
