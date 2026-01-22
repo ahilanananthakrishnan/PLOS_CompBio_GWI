@@ -10,12 +10,13 @@ tPB_control = 1e-3
 # INITIAL GUESS
 # ============================================================
 
-# Gene parameters p = [r_drop, x_ss, k_rec]
-#   r_drop : linear drop rate during exposure (t < t_PB)
-#   x_ss   : steady-state fold-change for t >= t_PB
-#   k_rec  : exponential recovery rate after exposure
-p0_ch = np.array([0.10, 1.65, 0.10])
-p0_nos = np.array([0.08, 0.95, 0.50])
+# Gene parameters p = [r_ch, ch_ss, k_ch]  for ch(t)
+#                 or [r_nos, nos_ss, k_nos] for nos(t)
+#   r_*    : acute loss rate during PB exposure (0 <= t < t_PB)
+#   *_ss   : post-exposure steady-state level (t >= t_PB)
+#   k_*    : recovery/adaptation rate after exposure (t >= t_PB)
+p0_ch  = np.array([0.10, 1.65, 0.10])   # [r_ch,  ch_ss,  k_ch]
+p0_nos = np.array([0.08, 0.95, 0.50])   # [r_nos, nos_ss, k_nos]
 
 # Active-stress parameters (NO q):
 #   Excitatory theta_E = [alpha_act_ex, k_ex, gamma_ch]
@@ -80,34 +81,27 @@ nos1_sd = np.array([nos1_day7.std(ddof=1), nos1_day30.std(ddof=1)])
 # GENE MODEL: piecewise (linear drop then exponential recovery)
 # ============================================================
 
-def piecewise_gene(t, tPB, r_drop, x_ss, k_rec):
-    """
-    Fold-change x(t; t_PB):
+def piecewise_gene(t, tPB, r_loss, x_ss, k_adapt):
 
-      if t < t_PB:
-        x = 1 - r_drop * t
-
-      if t >= t_PB:
-        x = x_ss - (x_ss - x(t_PB)) * exp(-k_rec * (t - t_PB))
-    """
     t = np.asarray(t, dtype=float)
     x = np.empty_like(t)
 
     pre  = t < tPB
     post = ~pre
 
-    x[pre] = 1.0 - r_drop * t[pre]
+    x[pre] = 1.0 - r_loss * t[pre]
 
-    x_tPB = 1.0 - r_drop * tPB
-    x[post] = x_ss - (x_ss - x_tPB) * np.exp(-k_rec * (t[post] - tPB))
+    x_tPB = 1.0 - r_loss * tPB
+    x[post] = x_ss - (x_ss - x_tPB) * np.exp(-k_adapt * (t[post] - tPB))
     return x
 
+
 def ch(t, tPB, p_ch):
-    """Excitatory gene fold-change ch(t; t_PB)."""
+    """Excitatory gene fold-change ch(t; t_PB); p_ch = [r_ch, ch_ss, k_ch]."""
     return piecewise_gene(t, tPB, p_ch[0], p_ch[1], p_ch[2])
 
 def nos(t, tPB, p_nos):
-    """Inhibitory gene fold-change nos(t; t_PB)."""
+    """Inhibitory gene fold-change nos(t; t_PB); p_nos = [r_nos, nos_ss, k_nos]."""
     return piecewise_gene(t, tPB, p_nos[0], p_nos[1], p_nos[2])
 
 # ============================================================
@@ -279,8 +273,8 @@ theta_I = least_squares(residI, th0I, max_nfev=200000, verbose=0).x
 # ============================================================
 
 print("\n======== FITTED GENE PARAMETERS ========")
-print("ChAT  p_ch  = [r_drop, ch_ss, k_ch]  =", p_ch)
-print("Nos1  p_nos = [r_drop, nos_ss, k_nos] =", p_nos)
+print("ChAT  p_ch  = [r_ch,  ch_ss,  k_ch]  =", p_ch)
+print("Nos1  p_nos = [r_nos, nos_ss, k_nos] =", p_nos)
 
 print("\n======== FITTED ACTIVE-STRESS PARAMETERS ========")
 print("theta_E = [alpha_act_ex, k_ex, gamma_ch]   =", theta_E)

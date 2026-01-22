@@ -32,7 +32,7 @@ C***********************************************************************
       REAL*8 PROPS(NPROPS)
       REAL*8 DFGRD1(3,3)
 
-      REAL*8 Iden(3,3),F(3,3),be(3,3)
+      REAL*8 Iden(3,3),Fe(3,3),be(3,3)
       REAL*8 sigma_pas(3,3),sigma_act(3,3),sigma_tot(3,3)
       REAL*8 Cmod(3,3,3,3),ANISO_C(3,3,3,3),JAC(3,3,3,3)
 
@@ -42,7 +42,7 @@ C***********************************************************************
       REAL*8 gamma_ch
       REAL*8 r_ch,k_ch,ch_ss
       REAL*8 k_ex,alpha_act_ex
-      REAL*8 Tdir(3),t_dir_e(3),norm
+      REAL*8 Tdir(3),tdir(3),norm
       REAL*8 Je,logJe,I4e
 
       REAL*8 teval,step_t,ramp
@@ -50,7 +50,7 @@ C***********************************************************************
       REAL*8 intM_norm,I1,I2,t_diff
       REAL*8 chi_ch,eta_ex,phi_ex,sigma_act_ex
 
-C --- master props
+C --- props
       day          = PROPS(1)
       t_pb         = PROPS(2)
       tc           = PROPS(3)
@@ -79,7 +79,8 @@ C --- master props
 C --- evaluation time for biology: teval = day
       teval  = day
 
-C --- step time for ramp
+C --- TIME(2) is the current step time; DTIME advances to the end of increment
+C --- Stept = elapsed time controlling LINEAR activation ramp
       step_t = TIME(2) + DTIME
 
 C --- identity
@@ -91,14 +92,15 @@ C --- identity
       END DO
 
 C ----------------------------------------------------------------
+C because Fh=I, F=Fe
 C ----------------------------------------------------------------
       DO I=1,3
          DO J=1,3
-            F(I,J)=DFGRD1(I,J)
+            Fe(I,J)=DFGRD1(I,J)
          END DO
       END DO
 
-      CALL MDET(F,Je)
+      CALL MDET(Fe,Je)
       IF (Je .LE. 0.D0) THEN
          WRITE(6,*) 'ERROR: Je <= 0 in Step 3. NOEL=',NOEL,' NPT=',NPT,
      &              ' KINC=',KINC,' Je=',Je
@@ -106,29 +108,29 @@ C ----------------------------------------------------------------
       ENDIF
       logJe = DLOG(Je)
 
-C --- be = F F^T
+C --- be = Fe Fe^T
       DO I=1,3
          DO J=1,3
             be(I,J)=0.D0
             DO K=1,3
-               be(I,J)=be(I,J)+F(I,K)*F(J,K)
+               be(I,J)=be(I,J)+Fe(I,K)*Fe(J,K)
             END DO
          END DO
       END DO
 
-C --- push-forward tangential direction: t_dir_e = F*Tdir / ||F*Tdir||
-      CALL MV3MULT(F,Tdir,t_dir_e)
-      norm = DSQRT(t_dir_e(1)**2 + t_dir_e(2)**2 + t_dir_e(3)**2)
+C --- push-forward tangential direction: tdir = Fe*Tdir / ||Fe*Tdir||
+      CALL MV3MULT(Fe, Tdir, tdir)
+      norm = DSQRT(tdir(1)**2 + tdir(2)**2 + tdir(3)**2)
 
       IF (norm .GT. 1.D-12) THEN
          I4e = norm*norm
-         DO I=1,3
-            t_dir_e(I)=t_dir_e(I)/norm
+         DO I = 1, 3
+            tdir(I) = tdir(I)/norm
          END DO
       ELSE
          I4e = 1.D0
-         DO I=1,3
-            t_dir_e(I)=Tdir(I)
+         DO I = 1, 3
+            tdir(I) = Tdir(I)
          END DO
       ENDIF
 
@@ -140,7 +142,7 @@ C ----------------------------------------------------------------
             sigma_pas(I,J)=
      &        ((kappa*logJe-mu)*Iden(I,J)+mu*be(I,J))/Je
      &        + (3.D0*kappa_f/Je)*(I4e-1.D0)**2
-     &          * t_dir_e(I)*t_dir_e(J)
+     &          * tdir(I)*tdir(J)
          END DO
       END DO
 
@@ -148,7 +150,7 @@ C ----------------------------------------------------------------
 C excitatory active stress
 C ----------------------------------------------------------------
 
-      IF (t_pb .LE. 0.D0) THEN
+      IF (t_pb .LE. 1.D-12) THEN
          ch = 1.D0
       ELSEIF (teval .LT. t_pb) THEN
          ch = 1.D0 - r_ch*teval
@@ -191,7 +193,7 @@ C scalar active stress (excitatory)
       sigma_act_ex = alpha_act_ex*eta_ex*phi_ex
 
 C ramp in Step 3
-      IF (step_t .LE. 0.D0) THEN
+      IF (step_t .EQ. 0.D0) THEN
          ramp = 0.D0
       ELSEIF (step_t .LT. 1.D0) THEN
          ramp = step_t
@@ -201,7 +203,7 @@ C ramp in Step 3
 
       DO I=1,3
          DO J=1,3
-            sigma_act(I,J) = sigma_act_ex*ramp*t_dir_e(I)*t_dir_e(J)
+            sigma_act(I,J) = sigma_act_ex*ramp*tdir(I)*tdir(J)
             sigma_tot(I,J) = sigma_pas(I,J) + sigma_act(I,J)
          END DO
       END DO
@@ -216,7 +218,7 @@ C ----------------------------------------------------------------
 
                   ANISO_C(I,J,K,L) =
      &              (12.D0*kappa_f/Je)*(I4e-1.D0)
-     &              * t_dir_e(I)*t_dir_e(J)*t_dir_e(K)*t_dir_e(L)
+     &              * tdir(I)*tdir(J)*tdir(K)*tdir(L)
 
                   Cmod(I,J,K,L)=
      &             (kappa/Je)*Iden(I,J)*Iden(K,L)

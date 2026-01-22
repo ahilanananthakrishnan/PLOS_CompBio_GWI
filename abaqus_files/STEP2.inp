@@ -1,6 +1,7 @@
 *INCLUDE, INPUT=PARAMETERS.inp
 *********************************************************************
 ** Import hypertrophied configuration from Step 1
+** Only deformed geometry is imported and stress is not imported
 *********************************************************************
 *IMPORT, STEP=1, STATE=NO, UPDATE=YES
 ALL

@@ -1,5 +1,5 @@
 C***********************************************************************
-C  UMAT_STEP1.f  (debug removed)
+C  UMAT_STEP1.f
 C
 C  STEP 1: Inflammation-driven hypertrophy (growth) 
 C***********************************************************************
@@ -43,10 +43,13 @@ C***********************************************************************
       REAL*8 theta_max0,b_h,c_h,K_h,n_h
       REAL*8 vartheta,Ival,intI
       REAL*8 Je,logJe,I4e
-      REAL*8 Rdir(3),Tdir(3),t_dir_e(3),norm
+      REAL*8 Rdir(3),Tdir(3),tdir(3),norm
+      REAL*8 Iold
+
+
       REAL*8 t_pb
 
-C --- extract needed props
+C --- props
       t_pb       = PROPS(2)
 
       a          = PROPS(4)
@@ -86,8 +89,9 @@ C --- fetch state
 
 C --- inflammation ODE + integral during exposure only
       IF (TIME(2) .LT. t_pb) THEN
-         Ival = Ival + DTIME*(a - d1*Ival)
-         intI = intI + Ival*DTIME
+         Iold = Ival
+         Ival = Ival + DTIME*(a - d1*Iold)
+         intI = intI + 0.5D0*(Iold + Ival)*DTIME
       ELSE
          Ival = Ival - DTIME*d2*Ival
       ENDIF
@@ -138,22 +142,22 @@ C --- be = Fe * Fe^T
          END DO
       END DO
 
-C --- push-forward tangential direction: t_dir_e = Fe*Tdir / ||Fe*Tdir||
-      CALL MV3MULT(Fe,Tdir,t_dir_e)
-      norm = DSQRT(t_dir_e(1)**2 + t_dir_e(2)**2 + t_dir_e(3)**2)
+C --- push-forward tangential direction: tdir = Fe*Tdir / ||Fe*Tdir||
+      CALL MV3MULT(Fe,Tdir,tdir)
+      norm = DSQRT(tdir(1)**2 + tdir(2)**2 + tdir(3)**2)
 
-C --- guard against norm=0
       IF (norm .GT. 1.D-12) THEN
          I4e = norm*norm
          DO I=1,3
-            t_dir_e(I)=t_dir_e(I)/norm
+            tdir(I)=tdir(I)/norm
          END DO
       ELSE
          I4e = 1.D0
          DO I=1,3
-            t_dir_e(I)=Tdir(I)
+            tdir(I)=Tdir(I)
          END DO
       ENDIF
+
 
 C --- stress (passive iso + passive aniso)
       DO I=1,3
@@ -161,7 +165,7 @@ C --- stress (passive iso + passive aniso)
             sigma(I,J)=
      &        ((kappa*logJe-mu)*Iden(I,J)+mu*be(I,J))/Je
      &        + (3.D0*kappa_f/Je)*(I4e-1.D0)**2
-     &          * t_dir_e(I)*t_dir_e(J)
+     &          * tdir(I)*tdir(J)
          END DO
       END DO
 
@@ -172,7 +176,7 @@ C --- stress (passive iso + passive aniso)
       STRESS(5)=sigma(1,3)
       STRESS(6)=sigma(2,3)
 
-C --- tangent: iso + aniso + geometric (same as your converging version)
+C --- tangent: iso + aniso + geometric
       DO I=1,3
          DO J=1,3
             DO K=1,3
@@ -180,8 +184,8 @@ C --- tangent: iso + aniso + geometric (same as your converging version)
 
                   ANISO_C(I,J,K,L) =
      &              (12.D0*kappa_f/Je)*(I4e-1.D0)
-     &              * t_dir_e(I)*t_dir_e(J)
-     &              * t_dir_e(K)*t_dir_e(L)
+     &              * tdir(I)*tdir(J)
+     &              * tdir(K)*tdir(L)
 
                   Cmod(I,J,K,L)=
      &             (kappa/Je)*Iden(I,J)*Iden(K,L)

@@ -1,6 +1,9 @@
 *INCLUDE, INPUT=PARAMETERS.inp
 *********************************************************************
 ** Import prestretched configuration from Step 2
+** Only deformed geometry is imported and stress is not imported
+** Stress is not imported as we are only interested in the active stress
+** arising from neural stimulation
 *********************************************************************
 *IMPORT, STEP=1, STATE=NO, UPDATE=YES
 ALL
