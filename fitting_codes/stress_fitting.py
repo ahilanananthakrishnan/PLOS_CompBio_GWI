@@ -1,13 +1,13 @@
-
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize, least_squares
 import matplotlib.pyplot as plt
 
-tPB_control = 1e-3  # used everywhere to represent control
+tPB_control = 1e-3  
 
 # ============================================================
-# INITIAL GUESSES + BOUNDS
+# UNCONSTRAINED OPTIMIZATION
+# INITIAL GUESS
 # ============================================================
 
 # Gene parameters p = [r_drop, x_ss, k_rec]
@@ -15,23 +15,13 @@ tPB_control = 1e-3  # used everywhere to represent control
 #   x_ss   : steady-state fold-change for t >= t_PB
 #   k_rec  : exponential recovery rate after exposure
 p0_ch = np.array([0.10, 1.65, 0.10])
-lb_ch = np.array([-1.00, -5.00, -2.00])
-ub_ch = np.array([ 1.00,  5.00,  2.00])
-
 p0_nos = np.array([0.08, 0.95, 0.50])
-lb_nos = np.array([-1.00, -5.00, -2.00])
-ub_nos = np.array([ 1.00,  5.00,  2.00])
 
 # Active-stress parameters (NO q):
 #   Excitatory theta_E = [alpha_act_ex, k_ex, gamma_ch]
 #   Inhibitory theta_I = [beta_act_in,  k_in, gamma_nos]
 th0E = np.array([1.80, 0.020, 0.005])
-lbE  = np.array([-10.0, -1.000, -5.000])
-ubE  = np.array([ 10.0,  1.000,  5.000])
-
 th0I = np.array([3.00, 0.080, 0.015])
-lbI  = np.array([-10.0, -1.000, -5.000])
-ubI  = np.array([ 10.0,  1.000,  5.000])
 
 use_bounded_lbfgsb = True
 
@@ -52,7 +42,6 @@ color_tpb7    = inferno(0.55)
 color_tpb10   = inferno(0.85)
 
 def color_for_tpb(tPB):
-    """Control (tPB≈0) is always black; others are inferno."""
     if tPB <= tPB_control:
         return color_control
     if np.isclose(tPB, 3.0):
@@ -142,18 +131,17 @@ def nos_obj(p):
 def bounded_minimize(obj, p0, lb, ub):
     res = minimize(
         obj, p0,
-        bounds=list(zip(lb, ub)),
-        method='L-BFGS-B',
+        method='BFGS',
         options={'maxfun': 2e5, 'maxiter': 1e5}
     )
     return res.x
 
 if use_bounded_lbfgsb:
-    p_ch  = bounded_minimize(chat_obj, p0_ch,  lb_ch,  ub_ch)
-    p_nos = bounded_minimize(nos_obj,  p0_nos, lb_nos, ub_nos)
+    p_ch  = bounded_minimize(chat_obj, p0_ch,  None,  None)
+    p_nos = bounded_minimize(nos_obj,  p0_nos, None, None)
 else:
-    p_ch  = minimize(chat_obj, p0_ch).x
-    p_nos = minimize(nos_obj,  p0_nos).x
+    p_ch  = minimize(chat_obj, p0_ch, method='BFGS', options={'maxfun': 2e5, 'maxiter': 1e5}).x
+    p_nos = minimize(nos_obj,  p0_nos, method='BFGS', options={'maxfun': 2e5, 'maxiter': 1e5}).x
 
 # ============================================================
 # STRESS DATA
@@ -283,8 +271,8 @@ def residE(theta):
 def residI(theta):
     return Ical['stress'].values - predI(Ical, theta)
 
-theta_E = least_squares(residE, th0E, bounds=(lbE, ubE), max_nfev=200000, verbose=0).x
-theta_I = least_squares(residI, th0I, bounds=(lbI, ubI), max_nfev=200000, verbose=0).x
+theta_E = least_squares(residE, th0E, max_nfev=200000, verbose=0).x
+theta_I = least_squares(residI, th0I, max_nfev=200000, verbose=0).x
 
 # ============================================================
 # REPORT
@@ -415,4 +403,3 @@ axis_style(ax4, (0, 32), (-2.0, 0.5))
 fig2.tight_layout()
 
 plt.show()
-
