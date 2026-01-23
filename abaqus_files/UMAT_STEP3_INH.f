@@ -160,7 +160,6 @@ C nos(teval; t_pb)
          nosPB = 1.D0 - r_nos*t_pb
          nos   = nos_ss - (nos_ss - nosPB)*DEXP(-k_nos*(teval - t_pb))
       ENDIF
-      IF (nos .LT. 0.D0) nos = 0.D0
 
 C intM_norm(teval; t_pb)
       IF (teval .LE. 0.D0) THEN

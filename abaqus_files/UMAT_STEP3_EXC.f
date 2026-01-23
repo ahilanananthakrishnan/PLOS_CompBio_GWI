@@ -158,7 +158,6 @@ C ----------------------------------------------------------------
          chPB = 1.D0 - r_ch*t_pb
          ch   = ch_ss - (ch_ss - chPB)*DEXP(-k_ch*(teval - t_pb))
       ENDIF
-      IF (ch .LT. 0.D0) ch = 0.D0
 
       IF (teval .LE. 0.D0) THEN
          intM_norm = 0.D0
