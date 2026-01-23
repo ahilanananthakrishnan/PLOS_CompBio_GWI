@@ -43,7 +43,7 @@ C***********************************************************************
       REAL*8 theta_max0,b_h,c_h,K_h,n_h
       REAL*8 vartheta,Ival,intI
       REAL*8 Je,logJe,I4e
-      REAL*8 Rdir(3),Tdir(3),tdir(3),norm
+      REAL*8 Rdir(3),Tdir(3),t_dir(3),norm
       REAL*8 Iold
 
 
@@ -142,19 +142,19 @@ C --- be = Fe * Fe^T
          END DO
       END DO
 
-C --- push-forward tangential direction: tdir = Fe*Tdir / ||Fe*Tdir||
-      CALL MV3MULT(Fe,Tdir,tdir)
-      norm = DSQRT(tdir(1)**2 + tdir(2)**2 + tdir(3)**2)
+C --- push-forward tangential direction: t_dir = Fe*Tdir / ||Fe*Tdir||
+      CALL MV3MULT(Fe,Tdir,t_dir)
+      norm = DSQRT(t_dir(1)**2 + t_dir(2)**2 + t_dir(3)**2)
 
       IF (norm .GT. 1.D-12) THEN
          I4e = norm*norm
          DO I=1,3
-            tdir(I)=tdir(I)/norm
+            t_dir(I)=t_dir(I)/norm
          END DO
       ELSE
          I4e = 1.D0
          DO I=1,3
-            tdir(I)=Tdir(I)
+            t_dir(I)=Tdir(I)
          END DO
       ENDIF
 
@@ -165,7 +165,7 @@ C --- stress (passive iso + passive aniso)
             sigma(I,J)=
      &        ((kappa*logJe-mu)*Iden(I,J)+mu*be(I,J))/Je
      &        + (3.D0*kappa_f/Je)*(I4e-1.D0)**2
-     &          * tdir(I)*tdir(J)
+     &          * t_dir(I)*t_dir(J)
          END DO
       END DO
 
@@ -184,8 +184,8 @@ C --- tangent: iso + aniso + geometric
 
                   ANISO_C(I,J,K,L) =
      &              (12.D0*kappa_f/Je)*(I4e-1.D0)
-     &              * tdir(I)*tdir(J)
-     &              * tdir(K)*tdir(L)
+     &              * t_dir(I)*t_dir(J)
+     &              * t_dir(K)*t_dir(L)
 
                   Cmod(I,J,K,L)=
      &             (kappa/Je)*Iden(I,J)*Iden(K,L)

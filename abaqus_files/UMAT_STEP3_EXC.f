@@ -42,7 +42,7 @@ C***********************************************************************
       REAL*8 gamma_ch
       REAL*8 r_ch,k_ch,ch_ss
       REAL*8 k_ex,alpha_act_ex
-      REAL*8 Tdir(3),tdir(3),norm
+      REAL*8 Tdir(3),t_dir(3),norm
       REAL*8 Je,logJe,I4e
 
       REAL*8 teval,step_t,ramp
@@ -118,19 +118,19 @@ C --- be = Fe Fe^T
          END DO
       END DO
 
-C --- push-forward tangential direction: tdir = Fe*Tdir / ||Fe*Tdir||
-      CALL MV3MULT(Fe, Tdir, tdir)
-      norm = DSQRT(tdir(1)**2 + tdir(2)**2 + tdir(3)**2)
+C --- push-forward tangential direction: t_dir = Fe*Tdir / ||Fe*Tdir||
+      CALL MV3MULT(Fe, Tdir, t_dir)
+      norm = DSQRT(t_dir(1)**2 + t_dir(2)**2 + t_dir(3)**2)
 
       IF (norm .GT. 1.D-12) THEN
          I4e = norm*norm
          DO I = 1, 3
-            tdir(I) = tdir(I)/norm
+            t_dir(I) = t_dir(I)/norm
          END DO
       ELSE
          I4e = 1.D0
          DO I = 1, 3
-            tdir(I) = Tdir(I)
+            t_dir(I) = Tdir(I)
          END DO
       ENDIF
 
@@ -142,7 +142,7 @@ C ----------------------------------------------------------------
             sigma_pas(I,J)=
      &        ((kappa*logJe-mu)*Iden(I,J)+mu*be(I,J))/Je
      &        + (3.D0*kappa_f/Je)*(I4e-1.D0)**2
-     &          * tdir(I)*tdir(J)
+     &          * t_dir(I)*t_dir(J)
          END DO
       END DO
 
@@ -203,7 +203,7 @@ C ramp in Step 3
 
       DO I=1,3
          DO J=1,3
-            sigma_act(I,J) = sigma_act_ex*ramp*tdir(I)*tdir(J)
+            sigma_act(I,J) = sigma_act_ex*ramp*t_dir(I)*t_dir(J)
             sigma_tot(I,J) = sigma_pas(I,J) + sigma_act(I,J)
          END DO
       END DO
@@ -218,7 +218,7 @@ C ----------------------------------------------------------------
 
                   ANISO_C(I,J,K,L) =
      &              (12.D0*kappa_f/Je)*(I4e-1.D0)
-     &              * tdir(I)*tdir(J)*tdir(K)*tdir(L)
+     &              * t_dir(I)*t_dir(J)*t_dir(K)*t_dir(L)
 
                   Cmod(I,J,K,L)=
      &             (kappa/Je)*Iden(I,J)*Iden(K,L)
