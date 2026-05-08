@@ -141,7 +141,7 @@ C ----------------------------------------------------------------
          DO J=1,3
             sigma_pas(I,J)=
      &        ((kappa*logJe-mu)*Iden(I,J)+mu*be(I,J))/Je
-     &        + (3.D0*kappa_f/Je)*(I4e-1.D0)**2
+     &        + (3.D0*kappa_f/Je)*I4e*(I4e-1.D0)**2
      &          * t_dir(I)*t_dir(J)
          END DO
       END DO
@@ -216,7 +216,7 @@ C ----------------------------------------------------------------
                DO L=1,3
 
                   ANISO_C(I,J,K,L) =
-     &              (12.D0*kappa_f/Je)*(I4e-1.D0)
+     &              (12.D0*kappa_f/Je)*I4e**2*(I4e-1.D0)
      &              * t_dir(I)*t_dir(J)*t_dir(K)*t_dir(L)
 
                   Cmod(I,J,K,L)=
